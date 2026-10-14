@@ -56,7 +56,10 @@ button.go:disabled{opacity:.5;cursor:default}
 <label>Format</label><select id="fmt"></select>
 <label>Render engine</label><select id="eng"><option value="hti">Sharp: html-to-image (recommended)</option><option value="h2c">Compatibility: html2canvas</option></select>
 <div id="sOpt"><label>Quality scale</label><select id="sc"><option value="1">1× (exact size)</option><option value="2">2× (sharper)</option></select></div>
-<div id="aOpt" class="row hide"><div><label>Duration (s)</label><input id="dur" type="number" value="4" min="1" max="30"></div><div><label>FPS</label><input id="fps" type="number" value="12" min="2" max="24"></div></div>
+<div id="aOpt" class="row hide"><div><label>Duration (s)</label><input id="dur" type="number" value="4" min="1" max="60"></div><div id="fpsBox"><label>FPS</label><input id="fps" type="number" value="12" min="2" max="24"></div></div>
+<label>Music (optional)</label><input type="file" id="aud" accept="audio/*">
+<div id="aud2" class="row hide"><div><label>Volume %</label><input id="vol" type="number" value="80" min="0" max="100"></div><div><label>Fade (s)</label><input id="fade" type="number" value="1" min="0" max="5" step=".5"></div><div><label>Start at (s)</label><input id="aoff" type="number" value="0" min="0"></div></div>
+<div class="msg" id="amsg">Adds sound to MP4 only. Loops or trims to fit the video length.</div>
 <button class="go" id="go" disabled>Convert</button>
 <div class="bar" id="bar"><i id="bi"></i></div><div class="msg" id="msg"></div>
 </div>
@@ -82,9 +85,16 @@ function fit(){const st=$('#stage'),avail=st.parentElement.clientWidth-2,s=Math.
  st.style.width=W()*s+'px';st.style.height=H()*s+'px'}
 addEventListener('resize',fit);$('#w').oninput=$('#h').oninput=fit;
 const eff=()=>$('#mode').value==='auto'?detected:($('#mode').value==='anim'?'anim':'static');
-function refresh(){const m=eff(),f=$('#fmt');f.innerHTML=(m==='static'?[['png','PNG (transparent OK)'],['jpg','JPG (smaller)']]:[['mp4','MP4 video (best for ads)'],['gif','GIF (loops everywhere)']]).map(o=>`<option value="${o[0]}">${o[1]}</option>`).join('');
- $('#sOpt').classList.toggle('hide',m!=='static');$('#aOpt').classList.toggle('hide',m==='static');
+let AUD=null;
+const isVid=()=>['mp4','gif'].includes($('#fmt').value);
+function opts(){$('#sOpt').classList.toggle('hide',isVid());$('#aOpt').classList.toggle('hide',!isVid());$('#fpsBox').classList.toggle('hide',eff()==='static')}
+function refresh(){const m=eff(),L=m==='static'?[['png','PNG (transparent OK)'],['jpg','JPG (smaller)'],...(AUD?[['mp4','MP4: image + music']]:[])]:[['mp4','MP4 video (best for ads)'],['gif','GIF (no sound)']];
+ $('#fmt').innerHTML=L.map(o=>`<option value="${o[0]}">${o[1]}</option>`).join('');opts();
  $('#badge').textContent=html?(detected==='anim'?'Detected: animated':'Detected: static'):'Waiting for a file…'}
+$('#fmt').onchange=opts;
+$('#aud').onchange=async e=>{const f=e.target.files[0];AUD=null;$('#aud2').classList.toggle('hide',!f);
+ if(f){try{const ac=new (window.AudioContext||window.webkitAudioContext)();AUD=await ac.decodeAudioData(await f.arrayBuffer());ac.close();$('#amsg').textContent=f.name+' · '+AUD.duration.toFixed(1)+'s'}catch(err){$('#amsg').textContent='Could not read that audio file.';$('#aud2').classList.add('hide')}}
+ else $('#amsg').textContent='Adds sound to MP4 only. Loops or trims to fit the video length.';refresh()};
 $('#mode').onchange=refresh;
 const STY='<style>*,::before,::after{animation-play-state:paused}</style>';
 function loadFrame(freeze){return new Promise(res=>{frame.onload=async()=>{try{await frame.contentDocument.fonts.ready}catch(e){}res()};let h=html;if(freeze)h=/<head[^>]*>/i.test(h)?h.replace(/<head[^>]*>/i,m=>m+STY):STY+h;frame.srcdoc=h+'<!--'+Math.random()+'-->'})}
@@ -138,23 +148,29 @@ async function encodeGif(fr,fps){const w=fr[0].c.width,h=fr[0].c.height,P=[],w16
   for(let k=0;k<o.length;k+=255){const s=o.slice(k,k+255);b[p++]=s.length;b.set(s,p);p+=s.length}
   P.push(b);setP('Encoding GIF '+(i+1)+' / '+fr.length,.7+.3*i/fr.length);await sleep(0)}
  P.push(new Uint8Array([0x3B]));return new Blob(P,{type:'image/gif'})}
-async function encodeVideo(fr,fps){const w=fr[0].c.width&~1,h=fr[0].c.height&~1,cv=document.createElement('canvas');cv.width=w;cv.height=h;const x=cv.getContext('2d');
- const mime=['video/mp4;codecs=avc1.42E01E','video/mp4','video/webm;codecs=vp9','video/webm'].find(m=>MediaRecorder.isTypeSupported(m));
+async function encodeVideo(fr,fps,tot){const w=fr[0].c.width&~1,h=fr[0].c.height&~1,cv=document.createElement('canvas');cv.width=w;cv.height=h;const x=cv.getContext('2d');
+ const L=AUD?['video/mp4;codecs=avc1.42E01E,mp4a.40.2','video/mp4;codecs=avc1,mp4a.40.2','video/mp4','video/webm;codecs=vp9,opus','video/webm']:['video/mp4;codecs=avc1.42E01E','video/mp4','video/webm;codecs=vp9','video/webm'];
+ const mime=L.find(m=>MediaRecorder.isTypeSupported(m));
  if(!mime)throw new Error('This browser cannot record video. Try GIF instead.');
  outExt=mime.startsWith('video/mp4')?'mp4':'webm';
- const rec=new MediaRecorder(cv.captureStream(fps),{mimeType:mime,videoBitsPerSecond:12e6}),ch=[];rec.ondataavailable=e=>e.data.size&&ch.push(e.data);
- const done=new Promise(r=>rec.onstop=r),total=fr[fr.length-1].t+1/fps;x.drawImage(fr[0].c,0,0,w,h);rec.start();
+ const total=tot||(fr[fr.length-1].t+1/fps);let ac=null,src=null,T0=0,tracks=cv.captureStream(fps).getVideoTracks();
+ if(AUD){ac=new (window.AudioContext||window.webkitAudioContext)();await ac.resume();const dst=ac.createMediaStreamDestination(),g=ac.createGain(),vol=Math.min(1,Math.max(0,(+$('#vol').value||0)/100)),fd=Math.min(Math.max(0,+$('#fade').value||0),total/2);
+  T0=ac.currentTime+.05;g.gain.setValueAtTime(fd?0:vol,T0);if(fd){g.gain.linearRampToValueAtTime(vol,T0+fd);g.gain.setValueAtTime(vol,T0+total-fd);g.gain.linearRampToValueAtTime(0,T0+total)}
+  src=ac.createBufferSource();src.buffer=AUD;src.loop=true;src.connect(g);g.connect(dst);tracks=[...tracks,...dst.stream.getAudioTracks()]}
+ const rec=new MediaRecorder(new MediaStream(tracks),{mimeType:mime,videoBitsPerSecond:12e6}),ch=[];rec.ondataavailable=e=>e.data.size&&ch.push(e.data);
+ const done=new Promise(r=>rec.onstop=r);x.drawImage(fr[0].c,0,0,w,h);rec.start();
+ if(src){src.start(T0,Math.min(Math.max(0,+$('#aoff').value||0),Math.max(0,AUD.duration-.1)));src.stop(T0+total)}
  const s=performance.now();let k=0;
  await new Promise(res=>{(function tick(){const t=(performance.now()-s)/1000;while(k<fr.length-1&&fr[k+1].t<=t)k++;x.drawImage(fr[k].c,0,0,w,h);setP('Encoding video '+Math.min(t,total).toFixed(1)+'s / '+total.toFixed(1)+'s',.7+.3*Math.min(t/total,1));t>=total?res():requestAnimationFrame(tick)})()});
- rec.stop();await done;return new Blob(ch,{type:mime.split(';')[0]})}
+ rec.stop();await done;if(ac)ac.close();return new Blob(ch,{type:mime.split(';')[0]})}
 $('#go').onclick=async()=>{const btn=$('#go');btn.disabled=true;$('#res').style.display='none';outBlob=null;
  try{const m=eff(),f=$('#fmt').value;let blob;
-  if(m==='static'){setP('Rendering…',.3);await loadFrame();await sleep(500);await prep();let c=await snap(+$('#sc').value);if(f==='jpg')c=flat(c);
-   blob=await new Promise(r=>c.toBlob(r,f==='jpg'?'image/jpeg':'image/png',.95));outExt=f}
-  else{const dur=Math.min(30,Math.max(1,+$('#dur').value||4)),fps=Math.min(24,Math.max(2,+$('#fps').value||12)),fr=await capture(dur,fps);
+  if(m==='static'){setP('Rendering…',.3);await loadFrame();await sleep(500);await prep();const D=Math.min(60,Math.max(1,+$('#dur').value||4));if(f==='mp4'){blob=await encodeVideo([{c:flat(await snap(1)),t:0}],12,D);}else{let c=await snap(+$('#sc').value);if(f==='jpg')c=flat(c);
+   blob=await new Promise(r=>c.toBlob(r,f==='jpg'?'image/jpeg':'image/png',.95));outExt=f}}
+  else{const dur=Math.min(60,Math.max(1,+$('#dur').value||4)),fps=Math.min(24,Math.max(2,+$('#fps').value||12)),fr=await capture(dur,fps);
    if(f==='gif'){blob=await encodeGif(fr,fps);outExt='gif'}else blob=await encodeVideo(fr,fps)}
   outBlob=blob;const media=$('#media');media.innerHTML='';
-  if(outExt==='mp4'||outExt==='webm'){const v=document.createElement('video');v.controls=v.loop=v.muted=v.autoplay=true;v.playsInline=true;v.src=URL.createObjectURL(blob);v.onerror=()=>{media.insertAdjacentHTML('afterbegin','<p class="msg">Preview unavailable here, but the download will work.</p>')};media.appendChild(v)}
+  if(outExt==='mp4'||outExt==='webm'){const v=document.createElement('video');v.controls=v.loop=v.autoplay=true;v.muted=!AUD;v.playsInline=true;v.src=URL.createObjectURL(blob);v.onerror=()=>{media.insertAdjacentHTML('afterbegin','<p class="msg">Preview unavailable here, but the download will work.</p>')};media.appendChild(v)}
   else{const img=new Image(),fr2=new FileReader();fr2.onload=()=>{img.src=fr2.result};fr2.readAsDataURL(blob);media.appendChild(img)}
   $('#res').style.display='block';setP('Done · '+(blob.size/1024/1024).toFixed(2)+' MB '+outExt.toUpperCase(),1);
  }catch(e){setP('Failed: '+(e.message||e),0)}
