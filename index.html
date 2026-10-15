@@ -45,6 +45,7 @@ button.go:disabled{opacity:.5;cursor:default}
 <div class="drop" id="drop">Drop an .html file here or click to browse<br><small id="fn"></small></div>
 <input type="file" id="file" accept=".html,.htm,text/html" class="hide">
 <div style="margin-top:8px"><button class="chip" id="sample">Try a sample</button></div>
+<div style="margin-top:12px;border-top:1px solid var(--line);padding-top:10px"><label style="margin-top:0">Or paste a link to an HTML page</label><div class="row"><input id="url" type="url" placeholder="https://example.com/creative.html"><button class="chip" id="lu" style="flex:0 0 auto">Load</button></div></div>
 <div style="margin-top:12px;border-top:1px solid var(--line);padding-top:10px"><label style="margin-top:0">Or add music / voice to an existing video (MP4, MOV, WebM)</label><input type="file" id="vid" accept="video/*"></div>
 </div>
 <div class="card" style="margin-top:16px">
@@ -179,6 +180,13 @@ async function encodeVideo(fr,fps,tot){const w=fr[0].c.width&~1,h=fr[0].c.height
  const s=performance.now();let k=0;
  await new Promise(res=>{(function tick(){const t=(performance.now()-s)/1000;while(k<fr.length-1&&fr[k+1].t<=t)k++;x.drawImage(fr[k].c,0,0,w,h);setP('Encoding video '+Math.min(t,total).toFixed(1)+'s / '+total.toFixed(1)+'s',.7+.3*Math.min(t/total,1));t>=total?res():requestAnimationFrame(tick)})()});
  rec.stop();await done;if(ac)ac.close();return new Blob(ch,{type:mime.split(';')[0]})}
+$('#lu').onclick=async()=>{const u=$('#url').value.trim();if(!/^https?:\/\//i.test(u)){$('#msg').textContent='Enter a full link starting with http:// or https://';return}
+ $('#msg').textContent='Fetching the page…';
+ try{const r=await fetch('/api/fetch?url='+encodeURIComponent(u));if(!r.ok)throw new Error((await r.text()).slice(0,140)||('status '+r.status));
+  html=await r.text();try{const x=new URL(u);base=x.pathname.split('/').pop().replace(/\.[^.]+$/,'')||x.hostname}catch(e){base='page'}
+  $('#fn').textContent=u;$('#res').style.display='none';analyze()}
+ catch(e){$('#msg').textContent='Could not load that link: '+(e.message||e)+' (Link loading only works on the Cloudflare site that includes the /api/fetch function.)'}};
+$('#url').onkeydown=e=>{if(e.key==='Enter')$('#lu').click()};
 function setVid(on){vidMode=on;$('#htmlOpts').classList.toggle('hide',on);$('#stage').classList.toggle('hide',on);$('#vwrap').classList.toggle('hide',!on);$('#keepBox').classList.toggle('hide',!on);$('#go').textContent=on?'Add sound & export':'Convert';if(on)$('#amsg').textContent=AUD?$('#amsg').textContent:'Loops or trims to fit the video length.'}
 $('#vid').onchange=e=>{const f=e.target.files[0];if(!f)return;base=f.name.replace(/\.[^.]+$/,'')||'video';if(vidURL)URL.revokeObjectURL(vidURL);vidURL=URL.createObjectURL(f);$('#pv').src=vidURL;$('#fn').textContent=f.name;$('#res').style.display='none';setVid(true);$('#go').disabled=false;$('#msg').textContent='Video loaded. Add music and/or a voiceover, then export.'};
 async function addSound(){
