@@ -18,7 +18,7 @@ h1{font-size:24px;margin:0 0 4px}p.sub{margin:0 0 18px;color:var(--mut)}
 .drop{border:2px dashed var(--line);border-radius:12px;padding:22px 12px;text-align:center;cursor:pointer;color:var(--mut)}
 .drop.on,.drop:hover{border-color:var(--acc);color:var(--ink)}
 label{display:block;font-size:13px;color:var(--mut);margin:12px 0 4px}
-input,select{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);font:inherit}
+input,select,textarea{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);font:inherit}
 .row{display:flex;gap:8px}.row>*{flex:1}
 .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
 .chip{font-size:12px;padding:4px 9px;border:1px solid var(--line);border-radius:99px;background:none;color:var(--ink);cursor:pointer}
@@ -32,6 +32,8 @@ button.go:disabled{opacity:.5;cursor:default}
 .msg{font-size:13px;color:var(--mut);margin-top:8px;min-height:18px}
 #res{display:none;margin-top:16px}#res img,#res video{max-width:100%;max-height:460px;border-radius:10px;display:block;margin:0 auto 10px;background:var(--chk)}
 .hide{display:none}
+.tx{border:1px solid var(--line);border-radius:10px;padding:10px;margin-bottom:8px;display:grid;grid-template-columns:repeat(4,1fr);gap:6px}.tx textarea{grid-column:1/-1;resize:vertical}.tx label{margin:0 0 2px;font-size:11px}.tx input[type=color]{padding:2px;height:35px}
+.wrapr{flex-wrap:wrap}@media(max-width:560px){.tx{grid-template-columns:repeat(2,1fr)}}
 </style>
 </head>
 <body>
@@ -74,7 +76,18 @@ button.go:disabled{opacity:.5;cursor:default}
 </div>
 <div class="card">
 <h2>Preview</h2>
-<div id="vwrap" class="hide"><video id="pv" controls playsinline style="max-width:100%;max-height:520px;display:block;margin:0 auto;border-radius:10px"></video></div>
+<div id="vwrap" class="hide">
+<canvas id="pc" style="max-width:100%;max-height:520px;display:block;margin:0 auto;border-radius:10px;background:#000"></canvas>
+<video id="pv" class="hide" playsinline></video>
+<div class="row" style="margin-top:8px;align-items:center"><button class="chip" id="pp" style="flex:0 0 auto">▶ Play</button><input type="range" id="scrub" min="0" max="1" step="0.01" value="0"><span class="msg" id="tl" style="margin:0;flex:0 0 auto"></span></div>
+<h2 style="margin-top:16px">Trim &amp; cut</h2>
+<div class="row wrapr"><div><label style="margin-top:0">Start (s)</label><input id="ts" type="number" step=".1" min="0" placeholder="0"></div><div><label style="margin-top:0">End (s)</label><input id="te" type="number" step=".1" min="0"></div><div><label style="margin-top:0">Cut out from (s)</label><input id="cf" type="number" step=".1" min="0" placeholder="optional"></div><div><label style="margin-top:0">…to (s)</label><input id="ct" type="number" step=".1" min="0" placeholder="optional"></div></div>
+<div class="chips"><button class="chip" data-set="ts">Start = here</button><button class="chip" data-set="te">End = here</button><button class="chip" data-set="cf">Cut from here</button><button class="chip" data-set="ct">Cut to here</button><button class="chip" data-set="clr">Clear cut</button></div>
+<div class="msg" id="olen"></div>
+<h2 style="margin-top:16px">Text overlays</h2>
+<div class="msg" style="margin:0 0 8px">Text times are measured on the finished video (after trimming). Scrub to a moment, then use “start = now”.</div>
+<div id="tList"></div><button class="chip" id="tAdd">+ Add text</button>
+</div>
 <div class="stage" id="stage"><iframe id="frame" sandbox="allow-scripts allow-same-origin" title="preview"></iframe></div>
 <div id="res"><h2>Result</h2><div id="media"></div><button class="go" id="dl" style="margin-top:0">Download</button></div>
 </div>
@@ -187,20 +200,69 @@ $('#lu').onclick=async()=>{const u=$('#url').value.trim();if(!/^https?:\/\//i.te
   $('#fn').textContent=u;$('#res').style.display='none';analyze()}
  catch(e){$('#msg').textContent='Could not load that link: '+(e.message||e)+' (Link loading only works on the Cloudflare site that includes the /api/fetch function.)'}};
 $('#url').onkeydown=e=>{if(e.key==='Enter')$('#lu').click()};
-function setVid(on){vidMode=on;$('#htmlOpts').classList.toggle('hide',on);$('#stage').classList.toggle('hide',on);$('#vwrap').classList.toggle('hide',!on);$('#keepBox').classList.toggle('hide',!on);$('#go').textContent=on?'Add sound & export':'Convert';if(on)$('#amsg').textContent=AUD?$('#amsg').textContent:'Loops or trims to fit the video length.'}
-$('#vid').onchange=e=>{const f=e.target.files[0];if(!f)return;base=f.name.replace(/\.[^.]+$/,'')||'video';if(vidURL)URL.revokeObjectURL(vidURL);vidURL=URL.createObjectURL(f);$('#pv').src=vidURL;$('#fn').textContent=f.name;$('#res').style.display='none';setVid(true);$('#go').disabled=false;$('#msg').textContent='Video loaded. Add music and/or a voiceover, then export.'};
+function setVid(on){vidMode=on;$('#htmlOpts').classList.toggle('hide',on);$('#stage').classList.toggle('hide',on);$('#vwrap').classList.toggle('hide',!on);$('#keepBox').classList.toggle('hide',!on);$('#go').textContent=on?'Export video':'Convert';if(on)$('#amsg').textContent=AUD?$('#amsg').textContent:'Loops or trims to fit the video length.'}
+$('#vid').onchange=e=>{const f=e.target.files[0];if(!f)return;base=f.name.replace(/\.[^.]+$/,'')||'video';if(vidURL)URL.revokeObjectURL(vidURL);vidURL=URL.createObjectURL(f);$('#pv').src=vidURL;['ts','cf','ct'].forEach(i=>$('#'+i).value='');$('#fn').textContent=f.name;$('#res').style.display='none';setVid(true);$('#go').disabled=false;$('#msg').textContent='Video loaded. Add music and/or a voiceover, then export.'};
+//#pure-start
+const FONTS={Arial:'Arial, Helvetica, sans-serif',Georgia:'Georgia, serif',Impact:'Impact, Haettenschweiler, sans-serif','Trebuchet MS':'"Trebuchet MS", sans-serif','Courier New':'"Courier New", monospace',Verdana:'Verdana, sans-serif'};
+const BOX={dark:'rgba(0,0,0,.65)',light:'rgba(255,255,255,.92)',accent:'#ff7a45'};
+let TX=[];
+function trimOf(d,ts,te,cf,ct){let s=Math.max(0,+ts||0),e=Math.min(d,+te||d);if(e<=s)e=d;cf=cf===''||cf==null?null:+cf;ct=ct===''||ct==null?null:+ct;if(cf==null||ct==null||ct<=cf||cf<s||ct>e)cf=ct=null;return{s,e,cf,ct,len:(e-s)-(cf==null?0:ct-cf)}}
+function outT(t,T){if(t<T.s-.001||t>T.e)return null;if(T.cf!=null){if(t>=T.cf&&t<T.ct)return null;if(t>=T.ct)return t-T.s-(T.ct-T.cf)}return t-T.s}
+function rr(c,x,y,w,h,r){c.beginPath();c.roundRect?c.roundRect(x,y,w,h,r):c.rect(x,y,w,h)}
+function drawTx(c,w,h,t){if(t==null)return;
+ for(const x of TX){const s=+x.s||0,e=+x.e||0;if(!x.text||t<s||t>e)continue;
+  const fs=Math.max(8,Math.round(w*(+x.size||6)/100)),en=Math.min(1,(t-s)/.4),ex=Math.min(1,(e-t)/.3),ez=1-Math.pow(1-en,3);
+  let al=x.anim==='none'?1:Math.max(0,Math.min(en,ex)),dy=x.anim==='slide'?(1-ez)*fs*1.5:0,sc=x.anim==='pop'?.8+.2*ez:1;
+  c.save();c.font='700 '+fs+'px '+(FONTS[x.font]||FONTS.Arial);
+  const maxW=w*.88,lines=[];
+  for(const para of String(x.text).split('\n')){let cur='';for(const wd of para.split(' ')){const tr=cur?cur+' '+wd:wd;if(c.measureText(tr).width>maxW&&cur){lines.push(cur);cur=wd}else cur=tr}lines.push(cur)}
+  const lh=fs*1.25,bh=lines.length*lh,cy=x.pos==='top'?h*.08+bh/2:x.pos==='center'?h/2:h*.92-bh/2;
+  c.globalAlpha=al;c.translate(w/2,cy+dy);c.scale(sc,sc);
+  if(x.box&&x.box!=='none'){const bw=Math.max(...lines.map(l=>c.measureText(l).width))+fs*.9;c.fillStyle=BOX[x.box]||BOX.dark;rr(c,-bw/2,-(bh+fs*.5)/2,bw,bh+fs*.5,fs*.25);c.fill()}
+  else{c.shadowColor='rgba(0,0,0,.6)';c.shadowBlur=fs*.2}
+  c.textAlign='center';c.textBaseline='middle';c.fillStyle=x.color||'#fff';
+  lines.forEach((l,i)=>c.fillText(l,0,(i-(lines.length-1)/2)*lh));c.restore()}}
+//#pure-end
+const esc=t=>String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const getTrim=d=>trimOf(d,$('#ts').value,$('#te').value,$('#cf').value,$('#ct').value);
+const PV=$('#pv'),PC=$('#pc'),pctx=PC.getContext('2d');let pl=false;
+const nowOut=()=>{const o=outT(PV.currentTime,getTrim(PV.duration||0));return o==null?0:o};
+function paint(){if(!PV.videoWidth)return;pctx.drawImage(PV,0,0,PC.width,PC.height);const T=getTrim(PV.duration);drawTx(pctx,PC.width,PC.height,outT(PV.currentTime,T));
+ $('#scrub').value=PV.currentTime;$('#tl').textContent=(nowOut()).toFixed(1)+'s / '+T.len.toFixed(1)+'s';$('#olen').textContent='Finished video length: '+T.len.toFixed(1)+'s'+(T.cf!=null?' (with a section cut out)':'')}
+PV.onloadedmetadata=()=>{PC.width=PV.videoWidth;PC.height=PV.videoHeight;$('#te').value=+PV.duration.toFixed(2);$('#scrub').max=PV.duration;PV.currentTime=0;PV.onseeked=paint;paint()};
+function loop(){if(!pl)return;const T=getTrim(PV.duration);if(T.cf!=null&&PV.currentTime>=T.cf&&PV.currentTime<T.ct)PV.currentTime=T.ct;
+ if(PV.currentTime>=T.e-.03||PV.ended){PV.pause();pl=false;$('#pp').textContent='▶ Play';PV.currentTime=T.s;return}paint();requestAnimationFrame(loop)}
+$('#pp').onclick=()=>{if(pl){PV.pause();pl=false;$('#pp').textContent='▶ Play';return}const T=getTrim(PV.duration);if(PV.currentTime<T.s||PV.currentTime>=T.e-.05)PV.currentTime=T.s;PV.muted=false;PV.play();pl=true;$('#pp').textContent='❚❚ Pause';loop()};
+$('#scrub').oninput=e=>{PV.currentTime=+e.target.value};
+['ts','te','cf','ct'].forEach(id=>$('#'+id).oninput=paint);
+document.querySelectorAll('[data-set]').forEach(b=>b.onclick=()=>{const k=b.dataset.set;if(k==='clr'){$('#cf').value=$('#ct').value=''}else $('#'+k).value=PV.currentTime.toFixed(2);paint()});
+const so=(o,v)=>o.map(a=>`<option value="${a[0]}"${a[0]===v?' selected':''}>${a[1]}</option>`).join('');
+function renderTx(){$('#tList').innerHTML=TX.map((x,i)=>{const d=`data-i="${i}" data-k=`;return `<div class="tx"><textarea ${d}"text" rows="2">${esc(x.text)}</textarea>
+<div><label>Start (s)</label><input ${d}"s" type="number" step=".1" value="${x.s}"></div><div><label>End (s)</label><input ${d}"e" type="number" step=".1" value="${x.e}"></div>
+<div><label>Position</label><select ${d}"pos">${so([['top','Top'],['center','Center'],['bottom','Bottom']],x.pos)}</select></div><div><label>Size</label><input ${d}"size" type="number" min="2" max="20" step=".5" value="${x.size}"></div>
+<div><label>Color</label><input ${d}"color" type="color" value="${x.color}"></div><div><label>Box</label><select ${d}"box">${so([['none','None'],['dark','Dark'],['light','Light'],['accent','Orange']],x.box)}</select></div>
+<div><label>Animation</label><select ${d}"anim">${so([['fade','Fade'],['slide','Slide up'],['pop','Pop'],['none','None']],x.anim)}</select></div><div><label>Font</label><select ${d}"font">${so(Object.keys(FONTS).map(k=>[k,k]),x.font)}</select></div>
+<div style="grid-column:1/-1;display:flex;gap:6px;flex-wrap:wrap"><button class="chip" data-a="ns" data-i="${i}">start = now</button><button class="chip" data-a="ne" data-i="${i}">end = now</button><button class="chip" data-a="del" data-i="${i}">Remove</button></div></div>`}).join('')||'<div class="msg">No text yet. Click “Add text”.</div>'}
+$('#tList').oninput=e=>{const t=e.target,i=t.dataset.i;if(i==null||!t.dataset.k)return;TX[i][t.dataset.k]=t.type==='number'?+t.value:t.value;paint()};
+$('#tList').onclick=e=>{const b=e.target.closest('[data-a]');if(!b)return;const i=+b.dataset.i,n=+nowOut().toFixed(1),a=b.dataset.a;if(a==='del')TX.splice(i,1);else if(a==='ns'){TX[i].s=n;if(TX[i].e<=n)TX[i].e=+(n+3).toFixed(1)}else TX[i].e=n;renderTx();paint()};
+$('#tAdd').onclick=()=>{const n=+nowOut().toFixed(1);TX.push({text:'Your text here',s:n,e:+(n+3).toFixed(1),pos:'bottom',size:6,color:'#ffffff',box:'dark',anim:'fade',font:'Arial'});renderTx();paint()};
+renderTx();
+const seekTo=(v,t)=>new Promise(r=>{if(Math.abs(v.currentTime-t)<.01)return r();v.onseeked=()=>{v.onseeked=null;r()};v.currentTime=t});
 async function addSound(){
- if(!AUD&&!VO&&$('#keep').value==='1')throw new Error('Add music or a voiceover first.');
+ if(pl){PV.pause();pl=false;$('#pp').textContent='▶ Play'}
  const v=document.createElement('video');v.src=vidURL;v.playsInline=true;v.preload='auto';
  await new Promise((r,j)=>{v.onloadedmetadata=r;v.onerror=()=>j(new Error('Could not read that video.'))});
- const total=v.duration;if(!isFinite(total)||total<=0)throw new Error('Could not read the video length.');
+ const d=v.duration;if(!isFinite(d)||d<=0)throw new Error('Could not read the video length.');
+ const T=getTrim(d),trimmed=T.s>0||T.e<d-.05||T.cf!=null;
+ if(!AUD&&!VO&&!TX.length&&!trimmed&&$('#keep').value==='1')throw new Error('Add music, a voiceover, text, or a trim first.');
+ const total=T.len,w=v.videoWidth&~1,h=v.videoHeight&~1,cv=document.createElement('canvas');cv.width=w;cv.height=h;const x=cv.getContext('2d');
  const ac=new (window.AudioContext||window.webkitAudioContext)();await ac.resume();const dst=ac.createMediaStreamDestination(),bus=ac.createGain(),og=ac.createGain();
  bus.connect(dst);og.gain.value=$('#keep').value==='1'?1:0;ac.createMediaElementSource(v).connect(og);og.connect(bus);
- const vs=(v.captureStream||v.mozCaptureStream).call(v);
  const mime=['video/mp4;codecs=avc1.42E01E,mp4a.40.2','video/mp4;codecs=avc1,mp4a.40.2','video/mp4','video/webm;codecs=vp9,opus','video/webm'].find(m=>MediaRecorder.isTypeSupported(m));
  if(!mime)throw new Error('This browser cannot record video.');outExt=mime.startsWith('video/mp4')?'mp4':'webm';
- const rec=new MediaRecorder(new MediaStream([...vs.getVideoTracks(),...dst.stream.getAudioTracks()]),{mimeType:mime,videoBitsPerSecond:12e6}),ch=[];rec.ondataavailable=e=>e.data.size&&ch.push(e.data);
- const done=new Promise(r=>rec.onstop=r),ended=new Promise(r=>v.onended=r);
+ await seekTo(v,T.s);x.drawImage(v,0,0,w,h);drawTx(x,w,h,0);
+ const rec=new MediaRecorder(new MediaStream([...cv.captureStream(30).getVideoTracks(),...dst.stream.getAudioTracks()]),{mimeType:mime,videoBitsPerSecond:12e6}),ch=[];rec.ondataavailable=e=>e.data.size&&ch.push(e.data);
+ const done=new Promise(r=>rec.onstop=r);
  rec.start();await v.play();const T0=ac.currentTime+.02;
  if(AUD){const g=ac.createGain(),vol=Math.min(1,Math.max(0,(+$('#vol').value||0)/100)),fd=Math.min(Math.max(0,+$('#fade').value||0),total/2),sr=ac.createBufferSource();
   g.gain.setValueAtTime(fd?0:vol,T0);if(fd){g.gain.linearRampToValueAtTime(vol,T0+fd);g.gain.setValueAtTime(vol,T0+total-fd);g.gain.linearRampToValueAtTime(0,T0+total)}
@@ -208,8 +270,12 @@ async function addSound(){
  if(VO){const off=Math.max(0,+$('#voff').value||0),a=T0+off,b=a+VO.duration,gv=ac.createGain(),vr=ac.createBufferSource();
   if($('#duck').value==='1'){bus.gain.setValueAtTime(1,T0);bus.gain.setValueAtTime(1,Math.max(T0,a-.3));bus.gain.linearRampToValueAtTime(.25,a);bus.gain.setValueAtTime(.25,b);bus.gain.linearRampToValueAtTime(1,b+.4)}
   gv.gain.value=Math.min(2,Math.max(0,(+$('#vvol').value||0)/100));vr.buffer=VO;vr.connect(gv);gv.connect(dst);vr.start(a);vr.stop(T0+total)}
- const tk=setInterval(()=>setP('Processing '+v.currentTime.toFixed(1)+'s / '+total.toFixed(1)+'s (keep this tab open)',v.currentTime/total),200);
- await ended;clearInterval(tk);rec.stop();await done;ac.close();return new Blob(ch,{type:mime.split(';')[0]})}
+ let jumped=false;
+ await new Promise(res=>{(function tick(){const t=v.currentTime;
+  if(T.cf!=null&&!jumped&&t>=T.cf){jumped=true;v.currentTime=T.ct}
+  if(t>=T.e-.03||v.ended)return res();
+  const o=outT(t,T);x.drawImage(v,0,0,w,h);drawTx(x,w,h,o);setP('Processing '+(o||0).toFixed(1)+'s / '+total.toFixed(1)+'s (keep this tab open)',Math.min(1,(o||0)/total));requestAnimationFrame(tick)})()});
+ v.pause();rec.stop();await done;ac.close();return new Blob(ch,{type:mime.split(';')[0]})}
 $('#go').onclick=async()=>{const btn=$('#go');btn.disabled=true;$('#res').style.display='none';outBlob=null;
  try{const m=eff(),f=$('#fmt').value;let blob;
   if(vidMode){blob=await addSound()}else if(m==='static'){setP('Rendering…',.3);await loadFrame();await sleep(500);await prep();const D=Math.min(60,Math.max(1,+$('#dur').value||4));if(f==='mp4'){blob=await encodeVideo([{c:flat(await snap(1)),t:0}],12,D);}else{let c=await snap(+$('#sc').value);if(f==='jpg')c=flat(c);
