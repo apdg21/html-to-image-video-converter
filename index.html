@@ -34,6 +34,14 @@ button.go:disabled{opacity:.5;cursor:default}
 .hide{display:none}
 .tx{border:1px solid var(--line);border-radius:10px;padding:10px;margin-bottom:8px;display:grid;grid-template-columns:repeat(4,1fr);gap:6px}.tx textarea{grid-column:1/-1;resize:vertical}.tx label{margin:0 0 2px;font-size:11px}.tx input[type=color]{padding:2px;height:35px}
 .wrapr{flex-wrap:wrap}@media(max-width:560px){.tx{grid-template-columns:repeat(2,1fr)}}
+details{border-top:1px solid var(--line);padding:8px 0}summary{cursor:pointer;font-size:13px;font-weight:600}details>div{margin-top:6px}
+.wrap.ed{max-width:1560px}.grid.ed{grid-template-columns:320px minmax(0,1fr) 340px}
+#editor{position:sticky;top:12px;max-height:calc(100vh - 24px);overflow:auto;align-self:start}
+@media(max-width:1100px){.grid.ed{grid-template-columns:320px minmax(0,1fr)}#editor{grid-column:1/-1;position:static;max-height:none}}
+@media(max-width:820px){.grid.ed{grid-template-columns:1fr}}
+.sw{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--mut);margin:0}.sw input{width:42px;height:30px;padding:1px;flex:none}
+.swg{display:grid;grid-template-columns:1fr 1fr;gap:6px}.chip.on{border-color:var(--acc);background:var(--chk)}
+#editor textarea{margin-bottom:6px;font-size:13px}
 </style>
 </head>
 <body>
@@ -42,7 +50,8 @@ button.go:disabled{opacity:.5;cursor:default}
 <p class="sub">Upload an HTML file. Static designs export as PNG/JPG; animated ones or slideshows export as GIF/MP4. Built for social posts and ad creatives.</p>
 <div class="grid">
 <div>
-<div class="card">
+<div class="card"><h2>Templates</h2><div class="chips" id="tplList" style="margin-top:0"></div><div class="msg" style="margin-top:6px">Pick one, then edit text, colors, fonts and more in the right panel.</div></div>
+<div class="card" style="margin-top:16px">
 <h2>1 · Upload</h2>
 <div class="drop" id="drop">Drop an .html file here or click to browse<br><small id="fn"></small></div>
 <input type="file" id="file" accept=".html,.htm,text/html" class="hide">
@@ -96,6 +105,23 @@ button.go:disabled{opacity:.5;cursor:default}
 <div class="stage" id="stage"><iframe id="frame" sandbox="allow-scripts allow-same-origin" title="preview"></iframe></div>
 <div id="res"><h2>Result</h2><div id="media"></div><button class="go" id="dl" style="margin-top:0">Download</button></div>
 </div>
+<div class="card" id="editor" style="display:none">
+<h2 style="display:flex;justify-content:space-between;align-items:center">Edit template <button class="chip" id="edReset" style="text-transform:none;letter-spacing:0">Reset</button></h2>
+<details open><summary>Text</summary><div id="edTxt"></div></details>
+<details open><summary>Colors</summary><div id="edCol" class="swg"></div></details>
+<details><summary>Background</summary><div>
+<select id="bgm"><option value="">Template default</option><option value="solid">Solid color</option><option value="grad">Gradient</option><option value="img">Image</option></select>
+<div class="row" style="margin-top:6px"><div><label style="margin-top:0">Color 1</label><input id="bga" type="color" value="#0f172a"></div><div><label style="margin-top:0">Color 2</label><input id="bgb" type="color" value="#1e293b"></div><div><label style="margin-top:0">Angle°</label><input id="bgd" type="number" value="135"></div></div>
+<label>Background image</label><input id="bgi" type="file" accept="image/*"><label>Darken image <span id="dimv">40</span>%</label><input id="bgdim" type="range" min="0" max="90" value="40">
+</div></details>
+<details><summary>Typography</summary><div>
+<label style="margin-top:0">Font</label><select id="edFont"></select>
+<label>Headline size <span id="hsv">100</span>%</label><input id="edHs" type="range" min="50" max="170" value="100">
+<label>Text size <span id="tsv">100</span>%</label><input id="edTs" type="range" min="50" max="170" value="100">
+</div></details>
+<details><summary>Spacing</summary><div><label style="margin-top:0">Padding (px, blank = template default)</label><input id="edPad" type="number" min="0" max="200" placeholder="default"></div></details>
+<details><summary>Images</summary><div id="edImg"><div class="msg">This template has no images.</div></div></details>
+</div>
 </div>
 <footer style="margin-top:48px;padding-top:24px;border-top:1px solid var(--line);text-align:center;font-size:13.5px;color:var(--mut)">
   ⚡ Built by <a href="https://resumepro.pages.dev/" target="_blank" rel="noopener" style="color:var(--acc);font-weight:700;text-decoration:underline">ResumePro</a> — Turn your traditional PDF resume into a modern personal website.
@@ -131,7 +157,7 @@ $('#aud').onchange=async e=>{const f=e.target.files[0];AUD=null;$('#aud2').class
 $('#mode').onchange=refresh;
 const STY='<style>*,::before,::after{animation-play-state:paused}</style>';
 function loadFrame(freeze){return new Promise(res=>{frame.onload=async()=>{try{await frame.contentDocument.fonts.ready}catch(e){}res()};let h=html;if(freeze)h=/<head[^>]*>/i.test(h)?h.replace(/<head[^>]*>/i,m=>m+STY):STY+h;frame.srcdoc=h+'<!--'+Math.random()+'-->'})}
-async function analyze(){setVid(false);fit();$('#go').disabled=true;$('#msg').textContent='Analyzing…';await loadFrame();await sleep(400);
+async function analyze(tpl){TPLMODE=!!tpl;setVid(false);showEd(TPLMODE);fit();$('#go').disabled=true;$('#msg').textContent='Analyzing…';await loadFrame();await sleep(400);
  const d=frame.contentDocument;let n=0;try{n=d.getAnimations().length}catch(e){}
  hasCss=n>0||/@keyframes|animation\s*:|animation-name/i.test(html);hasJS=/setInterval|requestAnimationFrame|setTimeout/.test(html);
  detected=(n||/@keyframes|animation\s*:|animation-name|setInterval|requestAnimationFrame|<video|\.gif|<animate|swiper|carousel|slideshow/i.test(html))?'anim':'static';
@@ -212,7 +238,7 @@ $('#lu').onclick=async()=>{const u=$('#url').value.trim();if(!/^https?:\/\//i.te
   $('#fn').textContent=u;$('#res').style.display='none';analyze()}
  catch(e){$('#msg').textContent='Could not load that link: '+(e.message||e)+' (Link loading only works on the Cloudflare site that includes the /api/fetch function.)'}};
 $('#url').onkeydown=e=>{if(e.key==='Enter')$('#lu').click()};
-function setVid(on){vidMode=on;$('#htmlOpts').classList.toggle('hide',on);$('#stage').classList.toggle('hide',on);$('#vwrap').classList.toggle('hide',!on);$('#keepBox').classList.toggle('hide',!on);$('#go').textContent=on?'Export video':'Convert';if(on)$('#amsg').textContent=AUD?$('#amsg').textContent:'Loops or trims to fit the video length.'}
+function setVid(on){vidMode=on;if(on)showEd(false);$('#htmlOpts').classList.toggle('hide',on);$('#stage').classList.toggle('hide',on);$('#vwrap').classList.toggle('hide',!on);$('#keepBox').classList.toggle('hide',!on);$('#go').textContent=on?'Export video':'Convert';if(on)$('#amsg').textContent=AUD?$('#amsg').textContent:'Loops or trims to fit the video length.'}
 $('#vid').onchange=e=>{const f=e.target.files[0];if(!f)return;base=f.name.replace(/\.[^.]+$/,'')||'video';if(vidURL)URL.revokeObjectURL(vidURL);vidURL=URL.createObjectURL(f);$('#pv').src=vidURL;['ts','cf','ct'].forEach(i=>$('#'+i).value='');$('#fn').textContent=f.name;$('#res').style.display='none';setVid(true);$('#go').disabled=false;$('#msg').textContent='Video loaded. Add music and/or a voiceover, then export.'};
 //#pure-start
 const FONTS={Arial:'Arial, Helvetica, sans-serif',Georgia:'Georgia, serif',Impact:'Impact, Haettenschweiler, sans-serif','Trebuchet MS':'"Trebuchet MS", sans-serif','Courier New':'"Courier New", monospace',Verdana:'Verdana, sans-serif'};
@@ -293,7 +319,7 @@ async function addSound(){
   if(t>=T.e-.03||v.ended)return res();
   const o=outT(t,T);x.drawImage(v,0,0,w,h);drawTx(x,w,h,o);setP('Processing '+(o||0).toFixed(1)+'s / '+total.toFixed(1)+'s (keep this tab open)',Math.min(1,(o||0)/total));requestAnimationFrame(tick)})()});
  v.pause();rec.stop();await done;ac.close();return new Blob(ch,{type:mime.split(';')[0]})}
-$('#go').onclick=async()=>{const btn=$('#go');btn.disabled=true;$('#res').style.display='none';outBlob=null;
+$('#go').onclick=async()=>{const btn=$('#go');btn.disabled=true;$('#res').style.display='none';outBlob=null;if(TPLMODE){clearTimeout(edT);html=buildHtml()}
  try{const m=eff(),f=$('#fmt').value;let blob;
   if(vidMode){blob=await addSound()}else if(m==='static'){setP('Rendering…',.3);await loadFrame();await sleep(500);await prep();const D=Math.min(60,Math.max(1,+$('#dur').value||4));if(f==='mp4'){blob=await encodeVideo([{c:flat(await snap(1)),t:0}],12,D);}else{let c=await snap(+$('#sc').value);if(f==='jpg')c=flat(c);
    blob=await new Promise(r=>c.toBlob(r,f==='jpg'?'image/jpeg':'image/png',.95));outExt=f}}
@@ -306,6 +332,65 @@ $('#go').onclick=async()=>{const btn=$('#go');btn.disabled=true;$('#res').style.
  }catch(e){setP('Failed: '+(e.message||e),0)}
  btn.disabled=false};
 $('#dl').onclick=()=>{if(!outBlob)return;const a=document.createElement('a');a.href=URL.createObjectURL(outBlob);a.download=base+'-creative.'+outExt;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),4000)};
+// ---------- Templates & editor ----------
+const TPL=[['01','Launch Countdown','creative-01-launch-countdown.html'],['02','Big Stats','creative-02-stat-card.html'],['03','Testimonial','creative-03-testimonial.html'],['04','Feature Reveal','creative-04-feature-reveal.html'],['05','Product Showcase','creative-05-product-showcase.html'],['06','Before / After','creative-06-before-after.html'],['06b','Before / After (ResumePro)','creative-06-before-after-resumepro.html'],['07','Social Proof Marquee','creative-07-marquee.html'],['08','Notification Alert','creative-08-alert.html'],['09','Review Grid','creative-09-review-grid.html'],['10','Bold Statement','creative-10-bold-statement.html']];
+const FAM=[['Template default'],['Inter','Inter','Inter:wght@400;500;600;700;800;900'],['Plus Jakarta Sans','Plus Jakarta Sans','Plus+Jakarta+Sans:wght@400;500;600;700;800'],['Poppins','Poppins','Poppins:wght@400;500;600;700;800;900'],['Montserrat','Montserrat','Montserrat:wght@400;500;600;700;800;900'],['Playfair Display','Playfair Display','Playfair+Display:wght@400;500;600;700;800;900',1],['Lora','Lora','Lora:wght@400;500;600;700',1],['Roboto','Roboto','Roboto:wght@400;500;700;900'],['Bebas Neue','Bebas Neue','Bebas+Neue'],['Arial','Arial'],['Georgia','Georgia',null,1],['Impact','Impact']];
+const COLRE=/#[0-9a-fA-F]{6}\b|#[0-9a-fA-F]{3}\b|rgba?\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*(?:,\s*[\d.]+\s*)?\)/g;
+const FIT_CSS='html,body{margin:0!important;padding:0!important;min-height:0!important;width:100%!important;height:100%!important;overflow:hidden!important}body{display:block!important}.creative{width:100%!important;height:100%!important;max-width:none!important;aspect-ratio:auto!important;border-radius:0!important;box-shadow:none!important}';
+let SRC='',KEYS=[],PAL=[],IMGS=[],ED={txt:{},map:{},img:{},bgImg:''},TPLMODE=false,edT=0,edTok=0;
+const qa=t=>esc(t).replace(/"/g,'&quot;');
+function textNodes(doc){const w=doc.createTreeWalker(doc.body,NodeFilter.SHOW_TEXT),a=[];let n;while(n=w.nextNode()){if(/^(SCRIPT|STYLE|NOSCRIPT)$/.test(n.parentNode.nodeName))continue;if(n.nodeValue.trim())a.push(n)}return a}
+function ckey(m){let r,g,b;if(m[0]==='#'){let h=m.slice(1);if(h.length===3)h=h.replace(/./g,'$&$&');[r,g,b]=[0,2,4].map(i=>parseInt(h.substr(i,2),16))}else[r,g,b]=m.match(/\d+(\.\d+)?/g).slice(0,3).map(Number);return r+','+g+','+b}
+const rgb2hex=k=>'#'+k.split(',').map(n=>(+n).toString(16).padStart(2,'0')).join('');
+function palette(s){const m={};for(const c of s.match(COLRE)||[]){const k=ckey(c);m[k]=(m[k]||0)+1}return Object.entries(m).sort((a,b)=>b[1]-a[1]).slice(0,12).map(e=>e[0])}
+function buildHtml(){
+ let s=SRC.replace(COLRE,m=>{const to=ED.map[ckey(m)];if(!to)return m;if(m[0]==='#')return to;const rgb=[1,3,5].map(i=>parseInt(to.substr(i,2),16)),al=/,\s*([\d.]+)\s*\)$/.exec(m);return al?`rgba(${rgb},${al[1]})`:`rgb(${rgb})`});
+ const hs=+$('#edHs').value/100,ts=+$('#edTs').value/100;
+ if(hs!==1||ts!==1)s=s.replace(/font-size\s*:\s*([\d.]+)px/gi,(m,n)=>'font-size:'+(+n*(+n>=36?hs:ts)).toFixed(1)+'px');
+ const doc=new DOMParser().parseFromString(s,'text/html');
+ textNodes(doc).forEach(n=>{const k=n.nodeValue.trim(),v=ED.txt[k];if(v!==undefined)n.nodeValue=n.nodeValue.replace(k,()=>v)});
+ doc.querySelectorAll('img').forEach((im,i)=>{if(ED.img[i])im.setAttribute('src',ED.img[i])});
+ let css=TPLMODE?FIT_CSS:'';const bm=$('#bgm').value,fam=FAM[+$('#edFont').value||0];
+ if(bm==='solid')css+=`.creative{background:${$('#bga').value}!important}`;
+ else if(bm==='grad')css+=`.creative{background:linear-gradient(${+$('#bgd').value||0}deg,${$('#bga').value},${$('#bgb').value})!important}`;
+ else if(bm==='img'&&ED.bgImg){const d=$('#bgdim').value/100;css+=`.creative{background:linear-gradient(rgba(0,0,0,${d}),rgba(0,0,0,${d})),url("${ED.bgImg}") center/cover no-repeat!important}`}
+ if(fam&&fam[1]){if(fam[2]){const lk=doc.createElement('link');lk.rel='stylesheet';lk.setAttribute('crossorigin','anonymous');lk.href='https://fonts.googleapis.com/css2?family='+fam[2]+'&display=swap';doc.head.appendChild(lk)}
+  css+=`.creative,.creative *{font-family:'${fam[1]}',${fam[3]?'serif':'sans-serif'}!important}`}
+ const pad=$('#edPad').value;if(pad!=='')css+=`.creative{padding:${+pad}px!important}`;
+ const st=doc.createElement('style');st.textContent=css;doc.head.appendChild(st);
+ return '<!DOCTYPE html>\n'+doc.documentElement.outerHTML}
+function renderEditor(){
+ $('#edTxt').innerHTML=KEYS.map((k,i)=>`<textarea data-e="txt" data-k="${i}" rows="${k.length>44?3:k.length>22?2:1}">${esc(ED.txt[k]!==undefined?ED.txt[k]:k)}</textarea>`).join('')||'<div class="msg">No text found.</div>';
+ $('#edCol').innerHTML=PAL.map(k=>{const v=ED.map[k]||rgb2hex(k);return `<label class="sw"><input type="color" data-e="col" data-k="${k}" value="${v}"><span>${v}</span></label>`}).join('');
+ $('#edImg').innerHTML=IMGS.length?IMGS.map((s,i)=>{const v=ED.img[i]?(ED.img[i].startsWith('data:')?'(uploaded image)':ED.img[i]):s;return `<label${i?'':' style="margin-top:0"'}>Image ${i+1}</label><input data-e="img" data-k="${i}" type="text" value="${qa(v)}"><input data-e="imgf" data-k="${i}" type="file" accept="image/*" style="margin-top:4px">`}).join(''):'<div class="msg">This template has no images.</div>'}
+function resetEd(){ED={txt:{},map:{},img:{},bgImg:''};$('#bgm').value='';$('#bga').value='#0f172a';$('#bgb').value='#1e293b';$('#bgd').value=135;$('#bgdim').value=40;$('#dimv').textContent=40;$('#edFont').value=0;$('#edHs').value=100;$('#edTs').value=100;$('#hsv').textContent=100;$('#tsv').textContent=100;$('#edPad').value='';$('#bgi').value='';renderEditor()}
+function showEd(on){$('#editor').style.display=on?'':'none';$('.grid').classList.toggle('ed',on);$('.wrap').classList.toggle('ed',on);if(on)setTimeout(fit,50)}
+function edChanged(){clearTimeout(edT);edT=setTimeout(async()=>{if($('#go').disabled)return;const tok=++edTok;html=buildHtml();await loadFrame()},300)}
+async function shrink(f,max){const b=await createImageBitmap(f),k=Math.min(1,max/Math.max(b.width,b.height)),c=document.createElement('canvas');c.width=Math.round(b.width*k);c.height=Math.round(b.height*k);c.getContext('2d').drawImage(b,0,0,c.width,c.height);return c.toDataURL(f.type==='image/png'?'image/png':'image/jpeg',.9)}
+async function loadTpl(i){const [id,name,file]=TPL[i];$('#msg').textContent='Loading template…';
+ try{const r=await fetch('templates/'+file);if(!r.ok)throw new Error('status '+r.status);SRC=await r.text()}
+ catch(e){$('#msg').textContent='Could not load the template ('+(e.message||e)+'). The templates/ folder must sit next to index.html on your host.';return}
+ base='template-'+id;$('#fn').textContent=name;$('#w').value=1200;$('#h').value=630;
+ const doc=new DOMParser().parseFromString(SRC,'text/html');
+ KEYS=[...new Set(textNodes(doc).map(n=>n.nodeValue.trim()))];PAL=palette(SRC);IMGS=[...doc.querySelectorAll('img')].map(im=>im.getAttribute('src')||'');
+ TPLMODE=true;resetEd();html=buildHtml();$('#res').style.display='none';
+ document.querySelectorAll('#tplList .chip').forEach((c,j)=>c.classList.toggle('on',j===i));
+ await analyze(true)}
+TPL.forEach((t,i)=>{const b=document.createElement('button');b.className='chip';b.textContent=t[0]+' · '+t[1];b.onclick=()=>loadTpl(i);$('#tplList').appendChild(b)});
+$('#edFont').innerHTML=FAM.map((f,i)=>`<option value="${i}">${f[0]}</option>`).join('');
+$('#editor').addEventListener('input',e=>{const t=e.target,d=t.dataset;if(t.type==='file')return;
+ if(d.e==='txt')ED.txt[KEYS[+d.k]]=t.value;
+ else if(d.e==='col'){ED.map[d.k]=t.value;t.nextElementSibling.textContent=t.value}
+ else if(d.e==='img'){if(t.value!=='(uploaded image)')ED.img[d.k]=t.value}
+ else if(t.id==='edHs')$('#hsv').textContent=t.value;
+ else if(t.id==='edTs')$('#tsv').textContent=t.value;
+ else if(t.id==='bgdim')$('#dimv').textContent=t.value;
+ edChanged()});
+$('#editor').addEventListener('change',async e=>{const t=e.target;if(t.type!=='file'||!t.files[0])return;
+ try{const url=await shrink(t.files[0],1800);
+  if(t.id==='bgi'){ED.bgImg=url;$('#bgm').value='img'}else if(t.dataset.e==='imgf'){ED.img[t.dataset.k]=url;t.previousElementSibling.value='(uploaded image)'}
+  edChanged()}catch(err){$('#msg').textContent='Could not read that image.'}});
+$('#edReset').onclick=()=>{resetEd();edChanged()};
 refresh();fit();
 </script>
 </body>

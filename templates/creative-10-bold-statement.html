@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Creative #10 — Bold Statement</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #0a0a0a; font-family: 'Inter', -apple-system, sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 20px; }
+
+  .creative {
+    width: 1200px; max-width: 100%; aspect-ratio: 1200/630;
+    background: #0f172a; position: relative; overflow: hidden;
+    display: flex; align-items: center; justify-content: center; padding: 48px;
+    border-radius: 12px; box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+  }
+
+  .glow {
+    position: absolute; width: 600px; height: 400px; border-radius: 50%;
+    background: radial-gradient(ellipse, rgba(56,189,248,0.08) 0%, transparent 70%);
+    animation: c10GlowMove 6s ease-in-out infinite;
+  }
+  @keyframes c10GlowMove { 0%, 100% { transform: translate(-200px, -100px); } 50% { transform: translate(100px, 50px); } }
+
+  .content { text-align: center; position: relative; z-index: 2; max-width: 800px; }
+
+  .big-quote {
+    font-size: 58px; font-weight: 800; color: #f8fafc;
+    line-height: 1.15; letter-spacing: -2px;
+    animation: quoteZoom 1s ease-out both;
+  }
+  .big-quote .grad { background: linear-gradient(135deg, #38bdf8, #818cf8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  @keyframes quoteZoom { 0% { transform: scale(0.9); opacity: 0; } 60% { transform: scale(1.02); } 100% { transform: scale(1); opacity: 1; } }
+
+  .author-row { display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 28px; animation: authorReveal 0.8s ease-out 0.5s both; }
+  @keyframes authorReveal { from { transform: translateY(15px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+  .line { width: 40px; height: 2px; background: linear-gradient(90deg, transparent, rgba(56,189,248,0.5)); border-radius: 1px; }
+  .line.right { background: linear-gradient(90deg, rgba(56,189,248,0.5), transparent); }
+  .author-name { color: #38bdf8; font-size: 15px; font-weight: 600; }
+</style>
+</head>
+<body>
+<div class="creative">
+  <div class="glow"></div>
+  <div class="content">
+    <div class="big-quote">
+      Your Next Job<br>Starts With<br><span class="grad">The Right Resume</span>
+    </div>
+    <div class="author-row">
+      <div class="line"></div>
+      <div class="author-name">ResumePro — Build Free Today</div>
+      <div class="line right"></div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

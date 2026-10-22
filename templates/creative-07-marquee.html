@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Creative #7 — Social Proof Marquee</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #0a0a0a; font-family: 'Inter', -apple-system, sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 20px; }
+
+  .creative {
+    width: 1200px; max-width: 100%; aspect-ratio: 1200/630;
+    background: #0f172a; position: relative; overflow: hidden;
+    display: flex; align-items: center; flex-direction: column;
+    justify-content: center; gap: 24px; padding: 40px;
+    border-radius: 12px; box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+  }
+
+  .header { text-align: center; animation: fadeInUp 0.6s ease-out both; }
+  .eyebrow { color: #38bdf8; font-size: 12px; font-weight: 600; letter-spacing: 3px; text-transform: uppercase; }
+  .heading { color: #f8fafc; font-size: 48px; font-weight: 800; margin-top: 8px; letter-spacing: -1px; }
+  @keyframes fadeInUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+  .marquee-wrapper { width: 100%; overflow: hidden; position: relative; mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent); -webkit-mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent); }
+  .marquee { display: flex; gap: 16px; width: max-content; animation: marqueeScroll 20s linear infinite; }
+  @keyframes marqueeScroll { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+
+  .marquee-item { background: rgba(30,41,59,0.6); border: 1px solid rgba(255,255,255,0.05); border-radius: 12px; padding: 14px 24px; display: flex; align-items: center; gap: 10px; backdrop-filter: blur(8px); white-space: nowrap; }
+  .marquee-emoji { font-size: 20px; }
+  .marquee-text { color: #e2e8f0; font-size: 15px; font-weight: 500; }
+  .marquee-value { color: #38bdf8; font-size: 14px; font-weight: 700; margin-left: 4px; }
+
+  .social-row { display: flex; justify-content: center; gap: 12px; animation: fadeInUp 0.6s ease-out 0.4s both; }
+  .social-btn { display: flex; align-items: center; gap: 6px; background: rgba(30,41,59,0.6); border: 1px solid rgba(255,255,255,0.05); border-radius: 50px; padding: 8px 18px; color: #94a3b8; font-size: 13px; font-weight: 500; }
+  .social-btn.primary { background: linear-gradient(135deg, #38bdf8, #818cf8); color: #0f172a; font-weight: 700; border: none; }
+</style>
+</head>
+<body>
+<div class="creative">
+  <div class="header">
+    <div class="eyebrow">What People Are Saying</div>
+    <div class="heading">Join 10,000+ Happy Users</div>
+  </div>
+  <div class="marquee-wrapper">
+    <div class="marquee">
+      <div class="marquee-item">🧑‍💻 Landed my dream job!<span class="marquee-value">+1</span></div>
+      <div class="marquee-item">⭐ 5-star rating<span class="marquee-value">500+</span></div>
+      <div class="marquee-item">🚀 Got hired in 2 weeks<span class="marquee-value">+1</span></div>
+      <div class="marquee-item">💼 ATS score jumped to 98%<span class="marquee-value">+1</span></div>
+      <div class="marquee-item">🎯 Perfect templates<span class="marquee-value">+1</span></div>
+      <div class="marquee-item">🔥 Best resume builder<span class="marquee-value">+1</span></div>
+      <div class="marquee-item">💡 So easy to use<span class="marquee-value">+1</span></div>
+      <div class="marquee-item">🧑‍💻 Interview calls doubled<span class="marquee-value">+1</span></div>
+      <div class="marquee-item">🧑‍💻 Landed my dream job!<span class="marquee-value">+1</span></div>
+      <div class="marquee-item">⭐ 5-star rating<span class="marquee-value">500+</span></div>
+      <div class="marquee-item">🚀 Got hired in 2 weeks<span class="marquee-value">+1</span></div>
+      <div class="marquee-item">💼 ATS score jumped to 98%<span class="marquee-value">+1</span></div>
+      <div class="marquee-item">🎯 Perfect templates<span class="marquee-value">+1</span></div>
+      <div class="marquee-item">🔥 Best resume builder<span class="marquee-value">+1</span></div>
+      <div class="marquee-item">💡 So easy to use<span class="marquee-value">+1</span></div>
+      <div class="marquee-item">🧑‍💻 Interview calls doubled<span class="marquee-value">+1</span></div>
+    </div>
+  </div>
+  <div class="social-row">
+    <div class="social-btn primary">Try Free →</div>
+    <div class="social-btn">⭐ Rate Us</div>
+    <div class="social-btn">📤 Share</div>
+  </div>
+</div>
+</body>
+</html>

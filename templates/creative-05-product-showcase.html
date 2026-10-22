@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Creative #5 — Product Showcase</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #0a0a0a; font-family: 'Inter', -apple-system, sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 20px; }
+
+  .creative {
+    width: 1200px; max-width: 100%; aspect-ratio: 1200/630;
+    background: #0f172a; position: relative; overflow: hidden;
+    padding: 40px; display: flex; flex-direction: column;
+    border-radius: 12px; box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+  }
+
+  .top { display: flex; justify-content: space-between; align-items: flex-start; position: relative; z-index: 2; }
+  .eyebrow { color: #38bdf8; font-size: 12px; font-weight: 600; letter-spacing: 3px; text-transform: uppercase; animation: fadeInUp 0.6s ease-out both; }
+  .heading { color: #f8fafc; font-size: 48px; font-weight: 800; line-height: 1.1; margin-top: 8px; letter-spacing: -1px; animation: fadeInUp 0.6s ease-out 0.15s both; }
+  .badge-anim { background: rgba(56,189,248,0.1); border: 1px solid rgba(56,189,248,0.2); border-radius: 50px; padding: 8px 18px; color: #38bdf8; font-size: 13px; font-weight: 600; animation: badgeBounce 0.6s ease-out 0.3s both; }
+  @keyframes fadeInUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+  @keyframes badgeBounce { 0% { transform: scale(0.8); opacity: 0; } 60% { transform: scale(1.05); } 100% { transform: scale(1); opacity: 1; } }
+
+  .products { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 24px; flex: 1; position: relative; z-index: 2; }
+  .product { background: rgba(30,41,59,0.6); border: 1px solid rgba(255,255,255,0.05); border-radius: 16px; overflow: hidden; backdrop-filter: blur(8px); animation: productReveal 0.6s ease-out both; display: flex; flex-direction: column; }
+  .product:nth-child(1) { animation-delay: 0.2s; }
+  .product:nth-child(2) { animation-delay: 0.35s; }
+  .product:nth-child(3) { animation-delay: 0.5s; }
+  @keyframes productReveal { from { transform: translateY(30px) scale(0.95); opacity: 0; } to { transform: translateY(0) scale(1); opacity: 1; } }
+
+  .product-thumb { height: 120px; display: flex; align-items: center; justify-content: center; font-size: 48px; position: relative; overflow: hidden; }
+  .product:nth-child(1) .product-thumb { background: linear-gradient(135deg, rgba(56,189,248,0.15), rgba(129,140,248,0.15)); }
+  .product:nth-child(2) .product-thumb { background: linear-gradient(135deg, rgba(251,146,60,0.15), rgba(251,113,133,0.15)); }
+  .product:nth-child(3) .product-thumb { background: linear-gradient(135deg, rgba(52,211,153,0.15), rgba(56,189,248,0.15)); }
+
+  .product-body { padding: 14px; flex: 1; }
+  .product-name { color: #f8fafc; font-size: 15px; font-weight: 700; }
+  .product-desc { color: #64748b; font-size: 12px; margin-top: 4px; line-height: 1.4; }
+  .product-tag { display: inline-block; margin-top: 8px; background: rgba(56,189,248,0.1); color: #38bdf8; font-size: 10px; font-weight: 600; padding: 3px 10px; border-radius: 50px; }
+
+  .price-row { display: flex; align-items: center; gap: 8px; margin-top: 16px; animation: fadeInUp 0.6s ease-out 0.65s both; position: relative; z-index: 2; }
+  .price { color: #f8fafc; font-size: 28px; font-weight: 800; }
+  .price-old { color: #64748b; font-size: 16px; text-decoration: line-through; }
+  .cta-btn { background: linear-gradient(135deg, #38bdf8, #818cf8); color: #0f172a; font-size: 14px; font-weight: 700; padding: 12px 32px; border-radius: 50px; margin-left: auto; animation: fadeInUp 0.6s ease-out 0.75s both; }
+</style>
+</head>
+<body>
+<div class="creative">
+  <div class="top">
+    <div>
+      <div class="eyebrow">Premium Templates</div>
+      <div class="heading">Pick Your<br>Perfect Style</div>
+    </div>
+    <div class="badge-anim">🔥 50% Off — Limited</div>
+  </div>
+  <div class="products">
+    <div class="product">
+      <div class="product-thumb">📄</div>
+      <div class="product-body">
+        <div class="product-name">Professional</div>
+        <div class="product-desc">Clean & minimal design perfect for corporate roles</div>
+        <div class="product-tag">Most Popular</div>
+      </div>
+    </div>
+    <div class="product">
+      <div class="product-thumb">🎨</div>
+      <div class="product-body">
+        <div class="product-name">Creative</div>
+        <div class="product-desc">Stand out with bold colors and unique layouts</div>
+        <div class="product-tag">New</div>
+      </div>
+    </div>
+    <div class="product">
+      <div class="product-thumb">💼</div>
+      <div class="product-body">
+        <div class="product-name">Executive</div>
+        <div class="product-desc">Premium design for senior roles and leadership</div>
+        <div class="product-tag">Pro</div>
+      </div>
+    </div>
+  </div>
+  <div class="price-row">
+    <span class="price">$29</span>
+    <span class="price-old">$59</span>
+    <div class="cta-btn">Shop Now →</div>
+  </div>
+</div>
+</body>
+</html>

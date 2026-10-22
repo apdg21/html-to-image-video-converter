@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Creative #2 — Big Stats</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #0a0a0a; font-family: 'Inter', -apple-system, sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 20px; }
+
+  .creative {
+    width: 1200px; max-width: 100%; aspect-ratio: 1200/630;
+    background: #0f172a; position: relative; overflow: hidden;
+    display: flex; align-items: center; padding: 40px;
+    border-radius: 12px; box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+  }
+
+  .left { flex: 1; position: relative; z-index: 2; }
+  .eyebrow { color: #38bdf8; font-size: 13px; font-weight: 600; letter-spacing: 3px; text-transform: uppercase; animation: fadeInLeft 0.8s ease-out both; }
+  .heading { color: #f8fafc; font-size: 52px; font-weight: 800; line-height: 1.1; margin-top: 12px; letter-spacing: -1px; animation: fadeInLeft 0.8s ease-out 0.2s both; }
+  .desc { color: #94a3b8; font-size: 17px; line-height: 1.6; margin-top: 16px; max-width: 480px; animation: fadeInLeft 0.8s ease-out 0.4s both; }
+  .stats { display: flex; gap: 24px; margin-top: 32px; animation: fadeInLeft 0.8s ease-out 0.6s both; }
+  .stat { background: rgba(30,41,59,0.6); border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; padding: 16px 24px; backdrop-filter: blur(10px); }
+  .stat-num { font-size: 32px; font-weight: 800; background: linear-gradient(135deg, #38bdf8, #818cf8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; line-height: 1; }
+  .stat-label { font-size: 13px; color: #64748b; margin-top: 4px; }
+
+  .right { width: 320px; height: 100%; position: relative; display: flex; align-items: center; justify-content: center; }
+  .ring { position: absolute; border-radius: 50%; border: 2px solid; animation: ringExpand linear infinite; }
+  .ring:nth-child(1) { width: 180px; height: 180px; border-color: rgba(56,189,248,0.3); animation-duration: 3s; }
+  .ring:nth-child(2) { width: 240px; height: 240px; border-color: rgba(129,140,248,0.2); animation-duration: 4s; animation-delay: 0.5s; }
+  .ring:nth-child(3) { width: 300px; height: 300px; border-color: rgba(56,189,248,0.1); animation-duration: 5s; animation-delay: 1s; }
+  @keyframes ringExpand { 0% { transform: scale(0.8); opacity: 0; } 20% { opacity: 1; } 100% { transform: scale(1.2); opacity: 0; } }
+
+  .center-icon {
+    width: 120px; height: 120px; border-radius: 50%;
+    background: linear-gradient(135deg, rgba(56,189,248,0.2), rgba(129,140,248,0.2));
+    border: 1px solid rgba(56,189,248,0.3);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 48px; animation: iconPulse 2s ease-in-out infinite;
+    position: relative; z-index: 2;
+  }
+  @keyframes iconPulse { 0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(56,189,248,0.3); } 50% { transform: scale(1.05); box-shadow: 0 0 30px 10px rgba(56,189,248,0.1); } }
+  @keyframes fadeInLeft { from { transform: translateX(-30px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+</style>
+</head>
+<body>
+<div class="creative">
+  <div class="left">
+    <div class="eyebrow">By The Numbers</div>
+    <div class="heading">Trusted by<br><span style="background:linear-gradient(135deg,#38bdf8,#818cf8);-webkit-background-clip:text;-webkit-text-fill-color:transparent">10,000+</span><br>Users</div>
+    <div class="desc">Join thousands who've transformed their careers with our AI-powered resume builder.</div>
+    <div class="stats">
+      <div class="stat"><div class="stat-num">94%</div><div class="stat-label">Success Rate</div></div>
+      <div class="stat"><div class="stat-num">3×</div><div class="stat-label">More Interviews</div></div>
+      <div class="stat"><div class="stat-num">5★</div><div class="stat-label">App Rating</div></div>
+    </div>
+  </div>
+  <div class="right">
+    <div class="ring"></div><div class="ring"></div><div class="ring"></div>
+    <div class="center-icon">✨</div>
+  </div>
+</div>
+</body>
+</html>
