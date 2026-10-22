@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Creative #12 — Comparison</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#0a0a0a}
+.creative{width:1200px;height:630px;position:relative;overflow:hidden;background:#0f172a;color:#fff;font-family:system-ui,-apple-system,sans-serif;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:40px;text-align:center}
+.tag{background:rgba(56,189,248,.15);color:#38bdf8;padding:6px 16px;border-radius:99px;font-size:14px;font-weight:700;margin-bottom:16px;border:1px solid rgba(56,189,248,.3)}
+h1{font-size:42px;margin:0 0 10px;line-height:1.2}
+p.sub{color:#94a3b8;font-size:18px;margin:0 0 36px;max-width:600px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;width:100%;max-width:720px}
+.card{background:#1e293b;border:1px solid #334155;border-radius:18px;padding:30px 20px}
+.card.hi{border-color:#38bdf8;box-shadow:0 0 30px rgba(56,189,248,.2);animation:float 3s ease-in-out infinite}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+.icon{font-size:38px;margin-bottom:12px}
+.title{font-size:20px;font-weight:700;margin-bottom:8px}
+.desc{color:#94a3b8;font-size:14px}
+</style>
+</head>
+<body>
+<div class="creative">
+<div class="tag">UPGRADE YOUR CAREER</div>
+<h1>Old Resume vs. Modern Web Link</h1>
+<p class="sub">Which one stands out to a recruiter in 5 seconds?</p>
+<div class="grid">
+<div class="card"><div class="icon">📄</div><div class="title">Standard PDF</div><div class="desc">Flat, static attachment for corporate ATS portals</div></div>
+<div class="card hi"><div class="icon">🌐</div><div class="title">Live Web Resume</div><div class="desc">Interactive link with 1-tap recruiter contact buttons</div></div>
+</div>
+</div>
+</body>
+</html>
