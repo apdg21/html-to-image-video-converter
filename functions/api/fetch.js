@@ -8,6 +8,27 @@ const UA = 'Mozilla/5.0 (compatible; HTMLtoCreative/1.0)';
 
 const bad = (msg, status = 400) => new Response(msg, { status, headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
 
+// Enforce the limit against bytes actually received, not only the optional
+// Content-Length header (which may be absent or incorrect).
+async function readBounded(body, limit) {
+  if (!body) return new Uint8Array();
+  const reader = body.getReader(), chunks = [];
+  let total = 0;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      total += value.byteLength;
+      if (total > limit) { await reader.cancel(); throw new Error('That file is too large (25 MB maximum).'); }
+      chunks.push(value);
+    }
+  } finally { reader.releaseLock(); }
+  const out = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) { out.set(chunk, offset); offset += chunk.byteLength; }
+  return out;
+}
+
 function allowed(u, env) {
   if (!/^https?:$/.test(u.protocol)) return 'Only http and https links are allowed.';
   if (u.port && u.port !== '80' && u.port !== '443') return 'Custom ports are not allowed.';
@@ -45,6 +66,9 @@ export async function onRequest({ request, env }) {
   if (len && len > MAX) return bad('That file is too large.', 413);
 
   const ct = res.headers.get('content-type') || '';
+  let body;
+  try { body = await readBounded(res.body, MAX); }
+  catch (e) { return bad(e.message || 'That file is too large.', 413); }
   const base0 = target.href;
   const hdr = (type) => ({ 'Content-Type': type, 'Cache-Control': 'public, max-age=600', 'X-Content-Type-Options': 'nosniff', 'Content-Security-Policy': 'sandbox' });
   const prox = (u, base) => {
@@ -55,7 +79,7 @@ export async function onRequest({ request, env }) {
     .replace(/url\(\s*(['"]?)(.*?)\1\s*\)/gi, (m, q, u) => 'url(' + q + prox(u, base) + q + ')')
     .replace(/@import\s+(['"])(.*?)\1/gi, (m, q, u) => '@import ' + q + prox(u, base) + q);
 
-  if (/text\/css/i.test(ct)) return new Response(css(await res.text(), base0), { headers: hdr('text/css; charset=utf-8') });
+  if (/text\/css/i.test(ct)) return new Response(css(new TextDecoder().decode(body), base0), { headers: hdr('text/css; charset=utf-8') });
 
   if (/text\/html|application\/xhtml/i.test(ct)) {
     let base = base0, buf = '';
@@ -71,9 +95,9 @@ export async function onRequest({ request, env }) {
       } })
       .on('[style]', { element(el) { const v = el.getAttribute('style'); if (v) el.setAttribute('style', css(v, base)); } })
       .on('style', { text(t) { buf += t.text; t.remove(); if (t.lastInTextNode) { t.replace(css(buf, base), { html: true }); buf = ''; } } })
-      .transform(new Response(res.body, { headers: { 'Content-Type': ct } }));
+      .transform(new Response(body, { headers: { 'Content-Type': ct } }));
     return new Response(out.body, { headers: hdr('text/html; charset=utf-8') });
   }
 
-  return new Response(res.body, { headers: hdr(ct || 'application/octet-stream') });
+  return new Response(body, { headers: hdr(ct || 'application/octet-stream') });
 }

@@ -48,6 +48,7 @@ details{border-top:1px solid var(--line);padding:8px 0}summary{cursor:pointer;fo
 <div class="wrap">
 <h1>HTML → Creative Converter</h1>
 <p class="sub">Upload an HTML file. Static designs export as PNG/JPG; animated ones or slideshows export as GIF/MP4. Built for social posts and ad creatives.</p>
+<div class="msg" role="note" style="margin:-10px 0 16px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--card)">HTML is rendered in your browser. Complex scripts, external assets, and animations may not reproduce exactly; always inspect the exported result.</div>
 <div class="grid">
 <div>
 <div class="card"><h2>Templates</h2><div class="chips" id="tplList" style="margin-top:0"></div><div class="msg" style="margin-top:6px">Pick one, then edit text, colors, fonts and more in the right panel.</div></div>
@@ -151,12 +152,27 @@ $('#aud').onchange=async e=>{const f=e.target.files[0];AUD=null;$('#aud2').class
  else $('#amsg').textContent='Adds sound to MP4 only. Loops or trims to fit the video length.';refresh()};
 $('#mode').onchange=refresh;
 const STY='<style>*,::before,::after{animation-play-state:paused}</style>';
-function loadFrame(freeze){return new Promise(res=>{frame.onload=async()=>{try{await frame.contentDocument.fonts.ready}catch(e){}res()};let h=html;if(freeze)h=/<head[^>]*>/i.test(h)?h.replace(/<head[^>]*>/i,m=>m+STY):STY+h;frame.srcdoc=h+'<!--'+Math.random()+'-->'})}
+// Uploaded/remote markup is untrusted. Remove executable and embedding surfaces before
+// putting it in the same-origin capture frame. This intentionally means JS-driven
+// creatives won't run; CSS animation and normal HTML/CSS remain supported.
+function safeMarkup(source){
+ const parsed=new DOMParser().parseFromString(source,'text/html');
+ parsed.querySelectorAll('script,iframe,frame,object,embed,portal,applet').forEach(n=>n.remove());
+ parsed.querySelectorAll('*').forEach(el=>{
+  for(const a of [...el.attributes]){
+   const name=a.name.toLowerCase(), value=a.value.trim();
+   if(name.startsWith('on') || ((name==='href'||name==='src'||name==='xlink:href'||name==='action'||name==='formaction') && /^javascript:/i.test(value))) el.removeAttribute(a.name);
+  }
+ });
+ parsed.querySelectorAll('meta[http-equiv]').forEach(el=>{if((el.getAttribute('http-equiv')||'').toLowerCase()==='refresh')el.remove()});
+ return '<!doctype html>'+parsed.documentElement.outerHTML;
+}
+function loadFrame(freeze){return new Promise(res=>{frame.onload=async()=>{try{await frame.contentDocument.fonts.ready}catch(e){}res()};let h=safeMarkup(html);if(freeze)h=/<head[^>]*>/i.test(h)?h.replace(/<head[^>]*>/i,m=>m+STY):STY+h;frame.srcdoc=h+'<!--'+Math.random()+'-->'})}
 async function analyze(tpl){TPLMODE=!!tpl;setVid(false);showEd(TPLMODE);fit();$('#go').disabled=true;$('#msg').textContent='Analyzing…';await loadFrame();await sleep(400);
  const d=frame.contentDocument;let n=0;try{n=d.getAnimations().length}catch(e){}
  hasCss=n>0||/@keyframes|animation\s*:|animation-name/i.test(html);hasJS=/setInterval|requestAnimationFrame|setTimeout/.test(html);
  detected=(n||/@keyframes|animation\s*:|animation-name|setInterval|requestAnimationFrame|<video|\.gif|<animate|swiper|carousel|slideshow/i.test(html))?'anim':'static';
- refresh();$('#go').disabled=false;$('#msg').textContent='Ready. Override the output type if auto-detect guessed wrong.'}
+ refresh();$('#go').disabled=false;$('#msg').textContent=hasJS?'Ready. Script-based behavior is disabled for safety; CSS animations are supported.':'Ready. Override the output type if auto-detect guessed wrong.'}
 function readFile(f){if(!f)return;base=f.name.replace(/\.[^.]+$/,'')||'creative';$('#fn').textContent=f.name;f.text().then(t=>{html=t;$('#res').style.display='none';analyze()})}
 $('#drop').onclick=()=>$('#file').click();$('#file').onchange=e=>readFile(e.target.files[0]);
 $('#drop').ondragover=e=>{e.preventDefault();$('#drop').classList.add('on')};$('#drop').ondragleave=()=>$('#drop').classList.remove('on');
@@ -309,8 +325,22 @@ async function addSound(){
   if(t>=T.e-.03||v.ended)return res();
   const o=outT(t,T);x.drawImage(v,0,0,w,h);drawTx(x,w,h,o);setP('Processing '+(o||0).toFixed(1)+'s / '+total.toFixed(1)+'s (keep this tab open)',Math.min(1,(o||0)/total));requestAnimationFrame(tick)})()});
  v.pause();rec.stop();await done;ac.close();return new Blob(ch,{type:mime.split(';')[0]})}
+function checkRenderBudget(mode,format){
+ const w=W(),h=H();
+ if(!Number.isFinite(w)||!Number.isFinite(h)||w<100||h<100||w>4000||h>4000)throw new Error('Choose a width and height between 100 and 4000 pixels.');
+ const pixels=w*h;
+ if(pixels>16_000_000)throw new Error('This output is too large for a reliable browser render. Reduce the dimensions (maximum 16 megapixels).');
+ if(mode==='anim' || format==='mp4' || format==='gif'){
+  const duration=Math.min(60,Math.max(1,+$('#dur').value||4));
+  const fps=Math.min(24,Math.max(2,+$('#fps').value||12));
+  const frames=Math.ceil(duration*fps);
+  // Each retained canvas costs substantially more than its raw RGBA pixel count.
+  // Bound total work to avoid browser-tab crashes on long/high-resolution exports.
+  if(pixels*frames>240_000_000)throw new Error('This animation is too large to render safely in one pass. Reduce duration, frame rate, or dimensions.');
+ }
+}
 $('#go').onclick=async()=>{const btn=$('#go');btn.disabled=true;$('#res').style.display='none';outBlob=null;if(TPLMODE){clearTimeout(edT);html=buildHtml()}
- try{const m=eff(),f=$('#fmt').value;let blob;
+ try{const m=eff(),f=$('#fmt').value;checkRenderBudget(m,f);let blob;
   if(vidMode){blob=await addSound()}else if(m==='static'){setP('Rendering…',.3);await loadFrame();await sleep(500);await prep();const D=Math.min(60,Math.max(1,+$('#dur').value||4));if(f==='mp4'){blob=await encodeVideo([{c:flat(await snap(1)),t:0}],12,D);}else{let c=await snap(+$('#sc').value);if(f==='jpg')c=flat(c);
    blob=await new Promise(r=>c.toBlob(r,f==='jpg'?'image/jpeg':'image/png',.95));outExt=f}}
   else{const dur=Math.min(60,Math.max(1,+$('#dur').value||4)),fps=Math.min(24,Math.max(2,+$('#fps').value||12)),fr=await capture(dur,fps);
